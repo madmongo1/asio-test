@@ -1,30 +1,8 @@
-#include <iostream>
-#include <asio.hpp>
-#include <chrono>
-#include <future>
+#include "boilerplate.hpp"
 #include <experimental/coroutine>
+#include <chrono>
 
 using namespace std::literals;
-namespace net = asio;
-
-std::mutex emit_mutex;
-template<class...Stuff>
-void echo(Stuff&&...stuff)
-{
-    auto l = std::unique_lock(emit_mutex);
-    (std::cout << ... << stuff);
-    std::cout << '\n';
-}
-
-template<class StringLike>
-auto underline(StringLike input)
-{
-    auto buffer = std::string(std::forward<StringLike>(input));
-    auto len = buffer.size();
-    buffer += '\n';
-    buffer.append(len, '=');
-    return buffer;
-}
 
 auto run() -> net::awaitable<void>
 {
@@ -39,53 +17,6 @@ auto run() -> net::awaitable<void>
     echo("B");
 }
 
-class io_environment
-{
-    net::io_context ioc;
-    std::exception_ptr ep;
-public:
-    static constexpr auto classname() { return "io_environment"; }
-
-    net::io_context::executor_type exec = ioc.get_executor();
-
-    void notify_complete(std::exception_ptr ep)
-    {
-        this->ep = ep;
-    }
-
-    void run()
-    {
-        ioc.run();
-        if (ep)
-            std::throw_with_nested(ep);
-    }
-
-};
-
-struct system_environment
-{
-    static constexpr auto classname() { return "system_environment"; }
-
-    net::system_executor exec;
-
-    void notify_complete(std::exception_ptr ep)
-    {
-        if (ep)
-            p.set_exception(ep);
-        else
-            p.set_value();
-    }
-
-    void run()
-    {
-        f.wait();
-    }
-
-private:
-    std::promise<void> p;
-    std::future<void> f = p.get_future();
-};
-
 template<class Environment>
 void prog(Environment env)
 {
@@ -99,8 +30,6 @@ void prog(Environment env)
 
     env.run();
 }
-
-#define USE_SYSTEM_EXECUTOR 1
 
 int main()
 {
