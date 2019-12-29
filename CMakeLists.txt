@@ -39,5 +39,7 @@ add_library(Asio::Asio ALIAS asio_lib)
 #
 # define the executable
 #
-add_executable(test1 main.cpp)
+file(GLOB_RECURSE test1_sources LIST_DIRECTORIES false CONFIGURE_DEPENDS "src/*.cpp" "src/*.hpp")
+add_executable(test1 ${test1_sources})
+target_include_directories(test1 PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(test1 Asio::Asio)
